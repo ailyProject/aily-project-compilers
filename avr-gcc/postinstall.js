@@ -164,6 +164,17 @@ async function extractArchives() {
             return;
         }
 
+        // 检查目标文件夹是否已存在
+        const zipFileName = getZipFileName();
+        const targetDirName = zipFileName.replace('.7z', '');
+        const targetPath = path.join(destDir, targetDirName);
+        
+        if (fs.existsSync(targetPath)) {
+            console.log(`目标文件夹已存在: ${targetPath}`);
+            console.log('跳过下载和解压操作。');
+            return;
+        }
+
         // 确保 7za.exe 存在
         if (!fs.existsSync(_7zaPath)) {
             console.error(`7za.exe 不存在: ${_7zaPath}`);

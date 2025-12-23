@@ -172,6 +172,17 @@ async function extractArchives() {
             return;
         }
 
+        // 检查目标文件夹是否已存在
+        const zipFileName = getZipFileName();
+        const targetDirName = zipFileName.replace('.7z', '');
+        const targetPath = path.join(destDir, targetDirName);
+        
+        if (fs.existsSync(targetPath)) {
+            console.log(`目标文件夹已存在: ${targetPath}`);
+            console.log('跳过下载和解压操作。');
+            return;
+        }
+
         if (!fs.existsSync(destDir)) {
             console.log(`目标目录不存在，创建: ${destDir}`);
             fs.mkdirSync(destDir, { recursive: true });
