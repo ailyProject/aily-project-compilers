@@ -27,20 +27,19 @@ const compilerPath = destDir ? path.join(destDir, compilerDirName) : "";
  * @returns {Promise} - 删除操作的Promise
  */
 function removeFile(filePath) {
-    return new Promise((resolve) => {
-        if (!fs.existsSync(filePath)) {
-            console.log(`文件不存在，无需删除: ${filePath}`);
-            resolve();
-            return;
-        }
-
+    return new Promise((resolve, reject) => {
         try {
             fs.unlinkSync(filePath);
             console.log(`已成功删除文件: ${filePath}`);
             resolve();
         } catch (err) {
+            if (err.code === 'ENOENT') {
+                console.log(`文件不存在，无需删除: ${filePath}`);
+                resolve();
+                return;
+            }
             console.warn(`删除文件失败: ${filePath}, 错误: ${err.message}`);
-            resolve(); // 继续执行，不中断流程
+            reject(err);
         }
     });
 }
@@ -51,13 +50,7 @@ function removeFile(filePath) {
  * @returns {Promise} - 删除操作的Promise
  */
 function removeDirectory(dirPath) {
-    return new Promise((resolve) => {
-        if (!fs.existsSync(dirPath)) {
-            console.log(`目录不存在，无需删除: ${dirPath}`);
-            resolve();
-            return;
-        }
-
+    return new Promise((resolve, reject) => {
         try {
             // 检查Node.js版本支持的API
             if (fs.rmSync) {
@@ -70,8 +63,13 @@ function removeDirectory(dirPath) {
             console.log(`已成功删除目录: ${dirPath}`);
             resolve();
         } catch (err) {
+            if (err.code === 'ENOENT') {
+                console.log(`目录不存在，无需删除: ${dirPath}`);
+                resolve();
+                return;
+            }
             console.warn(`删除目录失败: ${dirPath}, 错误: ${err.message}`);
-            resolve(); // 继续执行，不中断流程
+            reject(err);
         }
     });
 }
