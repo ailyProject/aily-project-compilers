@@ -27,19 +27,18 @@ const compilerPath = destDir ? path.join(destDir, compilerDirName) : "";
  * @returns {Promise} - 删除操作的Promise
  */
 function removeFile(filePath) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         try {
             fs.unlinkSync(filePath);
             console.log(`已成功删除文件: ${filePath}`);
-            resolve();
         } catch (err) {
             if (err.code === 'ENOENT') {
                 console.log(`文件不存在，无需删除: ${filePath}`);
-                resolve();
-                return;
+            } else {
+                console.warn(`删除文件失败: ${filePath}, 错误: ${err.message}`);
             }
-            console.warn(`删除文件失败: ${filePath}, 错误: ${err.message}`);
-            reject(err);
+        } finally {
+            resolve();
         }
     });
 }
@@ -50,7 +49,7 @@ function removeFile(filePath) {
  * @returns {Promise} - 删除操作的Promise
  */
 function removeDirectory(dirPath) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         try {
             // 检查Node.js版本支持的API
             if (fs.rmSync) {
@@ -61,15 +60,14 @@ function removeDirectory(dirPath) {
                 throw new Error('当前Node.js版本不支持递归删除目录');
             }
             console.log(`已成功删除目录: ${dirPath}`);
-            resolve();
         } catch (err) {
             if (err.code === 'ENOENT') {
                 console.log(`目录不存在，无需删除: ${dirPath}`);
-                resolve();
-                return;
+            } else {
+                console.warn(`删除目录失败: ${dirPath}, 错误: ${err.message}`);
             }
-            console.warn(`删除目录失败: ${dirPath}, 错误: ${err.message}`);
-            reject(err);
+        } finally {
+            resolve();
         }
     });
 }
