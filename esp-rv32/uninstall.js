@@ -59,14 +59,7 @@ function removeDirectory(dirPath) {
         }
 
         try {
-            // 检查Node.js版本支持的API
-            if (fs.rmSync) {
-                fs.rmSync(dirPath, { recursive: true, force: true });
-            } else if (fs.rmdirSync) {
-                fs.rmdirSync(dirPath, { recursive: true });
-            } else {
-                throw new Error('当前Node.js版本不支持递归删除目录');
-            }
+            fs.rmSync(dirPath, { recursive: true, force: true });
             console.log(`已成功删除目录: ${dirPath}`);
             resolve();
         } catch (err) {
