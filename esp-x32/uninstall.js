@@ -38,7 +38,7 @@ function removeFile(filePath) {
                 console.warn(`删除文件失败: ${filePath}, 错误: ${err.message}`);
             }
         } finally {
-            resolve();
+            resolve(); // 继续执行，不中断流程
         }
     });
 }
@@ -67,7 +67,7 @@ function removeDirectory(dirPath) {
                 console.warn(`删除目录失败: ${dirPath}, 错误: ${err.message}`);
             }
         } finally {
-            resolve();
+            resolve(); // 继续执行，不中断流程
         }
     });
 }
