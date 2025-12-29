@@ -2,6 +2,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const path = require('path');
 const https = require('https');
+const http = require('http');
 const os = require('os');
 
 // 获取当前操作系统类型
@@ -85,7 +86,10 @@ function getZipFile() {
 
         const fileStream = fs.createWriteStream(filePath);
 
-        https.get(downloadUrl, (response) => {
+        // 根据 URL 协议选择 http 或 https 模块
+        const httpClient = downloadUrl.startsWith('https://') ? https : http;
+
+        httpClient.get(downloadUrl, (response) => {
             if (response.statusCode !== 200) {
                 fileStream.close();
                 fs.unlink(filePath, () => { });

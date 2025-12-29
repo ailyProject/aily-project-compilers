@@ -2,6 +2,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const path = require('path');
 const https = require('https');
+const http = require('http');
 const os = require('os');
 
 // 获取当前操作系统类型
@@ -58,6 +59,44 @@ async function withRetry(fn, maxRetries = 3, retryDelay = 1000) {
     throw new Error(`经过 ${maxRetries} 次尝试后操作仍然失败: ${lastError.message}`);
 }
 
+// 检查文件是否可以被独占访问（确保文件已完全落盘且未被占用）
+function waitForFileReady(filePath, maxAttempts = 10, interval = 500) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+
+        const checkFile = () => {
+            attempts++;
+            
+            // 尝试以独占读取模式打开文件
+            fs.open(filePath, 'r', (err, fd) => {
+                if (err) {
+                    if (err.code === 'EBUSY' || err.code === 'ENOENT' || err.code === 'EPERM') {
+                        if (attempts < maxAttempts) {
+                            console.log(`文件暂时不可用，等待中... (${attempts}/${maxAttempts})`);
+                            setTimeout(checkFile, interval);
+                        } else {
+                            reject(new Error(`文件在 ${maxAttempts} 次尝试后仍不可用: ${filePath}`));
+                        }
+                    } else {
+                        reject(err);
+                    }
+                } else {
+                    // 文件可以打开，关闭文件描述符
+                    fs.close(fd, (closeErr) => {
+                        if (closeErr) {
+                            console.warn(`关闭文件描述符时出错: ${closeErr.message}`);
+                        }
+                        console.log('文件已就绪，可以进行解压操作');
+                        resolve();
+                    });
+                }
+            });
+        };
+
+        checkFile();
+    });
+}
+
 function getZipFileName() {
     // 读取package.json文件，获取name和version
     const prefix = "@aily-project/compiler-";
@@ -84,7 +123,10 @@ function getZipFile() {
 
         const fileStream = fs.createWriteStream(filePath);
 
-        https.get(downloadUrl, (response) => {
+        // 根据 URL 协议选择 http 或 https 模块
+        const httpClient = downloadUrl.startsWith('https://') ? https : http;
+
+        httpClient.get(downloadUrl, (response) => {
             if (response.statusCode !== 200) {
                 fileStream.close();
                 fs.unlink(filePath, () => { });
@@ -118,13 +160,18 @@ function getZipFile() {
             response.pipe(fileStream);
 
             fileStream.on('finish', () => {
-                fileStream.close();
                 // 输出换行，确保后续日志正常显示
                 if (totalSize > 0) {
                     console.log('');
                 }
-                console.log(`成功下载 ${zipFileName}`);
-                resolve(zipFileName);
+                // 使用 close 事件而不是 finish 事件来确保文件完全写入磁盘
+                fileStream.close(() => {
+                    console.log(`成功下载 ${zipFileName}`);
+                    // 添加短暂延迟确保文件系统完全同步
+                    setTimeout(() => {
+                        resolve(zipFileName);
+                    }, 200);
+                });
             });
 
             fileStream.on('error', (err) => {
@@ -222,6 +269,13 @@ async function extractArchives() {
             } else {
                 throw new Error(`检查文件失败: ${statErr.message}`);
             }
+        }
+
+        // 等待文件完全可用（确保已落盘且未被占用）
+        try {
+            await waitForFileReady(zipFilePath, 20, 500);
+        } catch (waitErr) {
+            throw new Error(`等待文件就绪失败: ${waitErr.message}`);
         }
 
         // 解压zip文件
