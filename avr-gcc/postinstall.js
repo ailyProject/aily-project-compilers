@@ -10,11 +10,13 @@ function getOSType() {
     const platform = os.platform();
     let arch = os.arch();
 
-    // 根据arch判断是intel还是arm架构
-    if (arch.startsWith('arm')) {
-        arch = 'arm';
+    // Windows 平台直接判断
+    if (platform === 'win32') {
+        arch = (arch === 'x64' || arch === 'ia32') ? 'intel' : 'arm';
     } else {
-        arch = 'intel';
+        // 其他平台（Linux、macOS等）用正则表达式
+        // 支持: arm, arm64, aarch64 等ARM变体
+        arch = arch.match(/^(arm|aarch)/i) ? 'arm' : 'intel';
     }
 
     return {
@@ -216,11 +218,11 @@ async function extractArchives() {
         const targetDirName = zipFileName.replace('.7z', '');
         const targetPath = path.join(destDir, targetDirName);
         
-        if (fs.existsSync(targetPath)) {
-            console.log(`目标文件夹已存在: ${targetPath}`);
-            console.log('跳过下载和解压操作。');
-            return;
-        }
+        // if (fs.existsSync(targetPath)) {
+        //     console.log(`目标文件夹已存在: ${targetPath}`);
+        //     console.log('跳过下载和解压操作。');
+        //     return;
+        // }
 
         // 确保 7za.exe 存在
         if (!fs.existsSync(_7zaPath)) {
